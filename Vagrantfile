@@ -22,7 +22,7 @@ IGNITION_CONFIG_PATH = File.join(File.dirname(__FILE__), "config.ign")
 CONFIG = File.join(File.dirname(__FILE__), "config.rb")
 
 # Defaults for config options defined in CONFIG
-$num_worker = 1
+$num_worker = 2
 $num_nodes = $num_worker + 1
 
 $enable_serial_logging = false
