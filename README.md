@@ -9,7 +9,7 @@
 
 ## Play with it
 
-> Exhibitor [http://172.17.8.2/:8181](http://172.17.8.2:8181), Marathon [http://172.17.8.2:8080](http://172.17.8.2:8080), Mesos [http://172.17.8.2:5050](http://172.17.8.2:8181)
+> Exhibitor [http://172.17.8.2:8181](http://172.17.8.2:8181), Marathon [http://172.17.8.2:8080](http://172.17.8.2:8080), Mesos [http://172.17.8.2:5050](http://172.17.8.2:8181)
 
 Run the Swarm manager 
 
