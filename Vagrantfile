@@ -22,7 +22,7 @@ IGNITION_CONFIG_PATH = File.join(File.dirname(__FILE__), "config.ign")
 CONFIG = File.join(File.dirname(__FILE__), "config.rb")
 
 # Defaults for config options defined in CONFIG
-$num_worker = 2
+$num_worker = 1
 $num_nodes = $num_worker + 1
 
 $instance_name_prefix = "core"
@@ -51,7 +51,9 @@ Vagrant.configure("2") do |config|
   config.vm.box = "coreos-alpha"
   config.vm.box_url = "https://alpha.release.core-os.net/amd64-usr/current/coreos_production_vagrant.json"
 
-  def customize_vm(config)
+  config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true,  :mount_options   => ['nolock,vers=3,udp']
+
+  def customize_vm(config, name)
     config.vm.provider :virtualbox do |v|
       v.customize ["modifyvm", :id, "--memory", $vm_mem]
       v.customize ["modifyvm", :id, "--cpus", $vm_cpus]
@@ -68,8 +70,8 @@ Vagrant.configure("2") do |config|
       # enable ignition (this is always done on virtualbox as this is how the ssh key is added to the system)
       config.ignition.enabled = true
 
-      config.ignition.config_vmdk = File.join(File.dirname(__FILE__), "config.vmdk")
-      config.ignition.config_img = "config.img"
+      config.ignition.config_vmdk = File.join(File.dirname(__FILE__), "config." + name + ".vmdk")
+      config.ignition.config_img = "config." + name  + ".img"
       # # when the ignition config doesn't exist, the plugin automatically generates a very basic Ignition with the ssh key
       # # and previously specified options (ip and hostname). Otherwise, it appends those to the provided config.ign below
       if File.exist?(IGNITION_CONFIG_PATH)
@@ -84,7 +86,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define "manager" do |node|
-    customize_vm node
+    customize_vm node, 'manager'
     manager_ip = $manager_ip
     node.ignition.ip = $manager_ip
     node.vm.provision "shell", path: "provision-manager.sh", args: ["#{manager_ip}"]
@@ -94,12 +96,12 @@ Vagrant.configure("2") do |config|
 
   $num_worker.times do |n|
     config.vm.define "worker-#{n+1}" do |node|
-      customize_vm node
+      customize_vm node, "worker-#{n+1}"
       node_index = n+1
       node_ip = $node_ips[n + 1]
       manager_ip = $manager_ip
       node.ignition.ip = $node_ips[n + 1]
-      node.vm.provision "shell", path: "provision-manager.sh", args: ["#{manager_ip}", "#{node_ip}"]
+      node.vm.provision "shell", path: "provision-worker.sh", args: ["#{manager_ip}", "#{node_ip}"]
       node.vm.network "private_network", ip: "#{node_ip}"
       node.vm.hostname = "worker-#{node_index}"
     end

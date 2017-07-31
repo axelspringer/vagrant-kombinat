@@ -6,3 +6,4 @@ config.ign
 config.ign.merged
 *.vmdk
 *.img
+worker_token
