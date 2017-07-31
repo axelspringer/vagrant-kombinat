@@ -25,7 +25,6 @@ CONFIG = File.join(File.dirname(__FILE__), "config.rb")
 $num_worker = 1
 $num_nodes = $num_worker + 1
 
-$instance_name_prefix = "core"
 $enable_serial_logging = false
 $share_home = false
 $vm_gui = false
