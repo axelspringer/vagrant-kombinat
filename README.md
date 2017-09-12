@@ -1,11 +1,16 @@
-# swarm-mesos-vagrant
+# coreos-mesos-vagrant
+
+What we test here, is somewhat ambiguous. We use [CoreOS](https://coreos.com/) and [Docker Swarm](https://docs.docker.com/engine/swarm/) to run [Apache Mesos](http://mesos.apache.org/) on top. 
+
+:smirk: Sounds crazy? Because, that it is. Though, [Docker Swarm](https://docs.docker.com/engine/swarm/) provides us with many of the needed underlying technologies to use [Apache Mesos](http://mesos.apache.org/). E.g. overlay networking, service orchestration and declarative infrastructure.
 
 ## Setup
 
-``` 
-    vagrant up
-```
+> please, do a `vagrant plugin update` before you continue, as to make sure that you do not rely on some old versions of the [Vagrant Ignition Plugin](https://github.com/coreos/vagrant-ignition)
 
+``` 
+vagrant up manager --provider virtualbox
+```
 
 ## Play with it
 
@@ -14,7 +19,7 @@
 Run the Swarm manager 
 
 ```
-	vagrant ssh manager
+vagrant ssh manager
 ```
 
 ```
@@ -25,7 +30,7 @@ docker node ls
 Run the Swarm worker
 
 ```
-    vagrant ssh worker-1
+vagrant ssh worker-1
 ```
 
 ## Container in Overlay Network with Marathon
@@ -68,3 +73,6 @@ Run the Swarm worker
   ]
 }
 ```
+
+# License
+[MIT](/LICENSE)
