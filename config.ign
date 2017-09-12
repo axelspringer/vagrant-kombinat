@@ -1,0 +1,33 @@
+{
+  "ignition": {
+    "version": "2.0.0",
+    "config": {}
+  },
+  "storage": {},
+  "systemd": {
+    "units": [
+      {
+        "name": "etcd-member.service",
+        "enable": true,
+        "dropins": [
+          {
+            "name": "20-clct-etcd-member.conf",
+            "contents": "[Unit]\nRequires=coreos-metadata.service\nAfter=coreos-metadata.service\n\n[Service]\nEnvironmentFile=/run/metadata/coreos\nExecStart=\nExecStart=/usr/lib/coreos/etcd-wrapper $ETCD_OPTS \\\n  --name=\"${COREOS_VAGRANT_VIRTUALBOX_HOSTNAME}\" \\\n  --listen-peer-urls=\"http://${COREOS_VAGRANT_VIRTUALBOX_PRIVATE_IPV4}:2380\" \\\n  --listen-client-urls=\"http://0.0.0.0:2379\" \\\n  --initial-advertise-peer-urls=\"http://${COREOS_VAGRANT_VIRTUALBOX_PRIVATE_IPV4}:2380\" \\\n  --advertise-client-urls=\"http://${COREOS_VAGRANT_VIRTUALBOX_PRIVATE_IPV4}:2379\" \\\n  --discovery=\"<DISCOVERY_URL>""
+          }
+        ]
+      },
+      {
+        "name": "docker-tcp.socket",
+        "enable": true,
+        "contents": "[Unit]\nDescription=Docker Socket for the API\n\n[Socket]\nListenStream=2375\nService=docker.service\nBindIPv6Only=both\n\n[Install]\nWantedBy=sockets.target\n"
+      },
+      {
+        "name": "docker-tls-tcp.socket",
+        "enable": true,
+        "contents": "[Unit]\nDescription=Docker Socket for the API\n\n[Socket]\nListenStream=2376\nService=docker.service\nBindIPv6Only=both\n\n[Install]\nWantedBy=sockets.target\n"
+      }
+    ]
+  },
+  "networkd": {},
+  "passwd": {}
+}
