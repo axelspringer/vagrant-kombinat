@@ -4,9 +4,15 @@ What we test here, is somewhat ambiguous. We use [CoreOS](https://coreos.com/) a
 
 :smirk: Sounds crazy? Because, that it is. Though, [Docker Swarm](https://docs.docker.com/engine/swarm/) provides us with many of the needed underlying technologies to use [Apache Mesos](http://mesos.apache.org/). E.g. overlay networking, service orchestration and declarative infrastructure.
 
+> Provisioning may take a while, because the images are pulled in the background
+
+We use the `stack.yml` to provision the Swarm with a Mesos stack.
+
 ## Setup
 
-> please, do a `vagrant plugin update` before you continue, as to make sure that you do not rely on some old versions of the [Vagrant Ignition Plugin](https://github.com/coreos/vagrant-ignition)
+> Please, do a `vagrant plugin update` before you continue, as to make sure that you do not rely on some old versions of the [Vagrant Ignition Plugin](https://github.com/coreos/vagrant-ignition)
+
+> Please, change the `DISCOVERY_URL` in `config.ign` to a working token for `etcd`
 
 ``` 
 vagrant up manager --provider virtualbox
