@@ -2,20 +2,20 @@ version: "3.2"
 
 services:
   
-  # watchtower:
-  #   image: centurylink/watchtower
-  #   command: --cleanup
-  #   volumes:
-  #     - type: bind
-  #       source: /run/docker.sock
-  #       target: /var/run/docker.sock
-  #   deploy:
-  #     mode: global
-  #     restart_policy:
-  #       condition: on-failure
-  #       delay: 30s
-  #       max_attempts: 5
-  #       window: 120s
+  watchtower:
+    image: centurylink/watchtower
+    command: --cleanup
+    volumes:
+      - type: bind
+        source: /run/docker.sock
+        target: /var/run/docker.sock
+    deploy:
+      mode: global
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+        max_attempts: 5
+        window: 120s
   
   exhibitor:
     image: pixelmilk/exhibitor:1.6.0-3.4.10
