@@ -12,7 +12,7 @@ We use the `stack.yml` to provision the Swarm with a Mesos stack.
 
 > Please, do a `vagrant plugin update` before you continue, as to make sure that you do not rely on some old versions of the [Vagrant Ignition Plugin](https://github.com/coreos/vagrant-ignition)
 
-> Please, change the `DISCOVERY_URL` in `config.ign` to a working token for `etcd`
+> Please, change the `DISCOVERY_URL` in `config.ign` to a working token for `etcd`, by executing `curl -w "\n" 'https://discovery.etcd.io/new?size=3'`
 
 ``` 
 vagrant up manager --provider virtualbox
