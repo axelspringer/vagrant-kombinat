@@ -50,8 +50,8 @@ Vagrant.configure("2") do |config|
   config.ssh.forward_agent = true
 
   # CoreOS
-  config.vm.box = "coreos-alpha"
-  config.vm.box_url = "https://alpha.release.core-os.net/amd64-usr/current/coreos_production_vagrant_virtualbox.box"
+  config.vm.box = "coreos-beta"
+  config.vm.box_url = "https://beta.release.core-os.net/amd64-usr/current/coreos_production_vagrant_virtualbox.box"
 
   # synced Folder, used to distribute worker_token
   config.vm.synced_folder ".", "/home/core/share", id: "core", :nfs => true,  :mount_options   => ['nolock,vers=3,udp']
@@ -78,6 +78,7 @@ Vagrant.configure("2") do |config|
       config.ignition.drive_root
       config.ignition.drive_name = "config." + name
       config.ignition.config_obj = vb
+      config.ignition.hostname = name
       # # when the ignition config doesn't exist, the plugin automatically generates a very basic Ignition with the ssh key
       # # and previously specified options (ip and hostname). Otherwise, it appends those to the provided config.ign below
       if File.exist?(IGNITION_CONFIG_PATH)
@@ -93,29 +94,31 @@ Vagrant.configure("2") do |config|
 
   # config Swarm Manager
   config.vm.define "manager" do |node|
-    customize_vm node, 'manager'
-
     manager_ip = $manager_ip
-
+    
     node.ignition.ip = $manager_ip
     node.vm.provision "shell", path: "provision-manager.sh", args: ["#{manager_ip}"]
     node.vm.network "private_network", ip: "#{manager_ip}"
     node.vm.hostname = "manager"
+
+    customize_vm node, 'manager'
+
   end
 
   # config Swarm Workers
   $num_worker.times do |n|
     config.vm.define "worker-#{n+1}" do |node|
-      customize_vm node, "worker-#{n+1}"
+      manager_ip = $manager_ip
 
       node_index = n+1
       node_ip = $node_ips[n + 1]
-      manager_ip = $manager_ip
 
       node.ignition.ip = $node_ips[n + 1]
       node.vm.provision "shell", path: "provision-worker.sh", args: ["#{manager_ip}", "#{node_ip}"]
       node.vm.network "private_network", ip: "#{node_ip}"
       node.vm.hostname = "worker-#{node_index}"
+      
+      customize_vm node, "worker-#{n+1}"
     end
   end
 end

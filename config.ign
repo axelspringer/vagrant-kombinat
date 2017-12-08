@@ -12,7 +12,7 @@
         "dropins": [
           {
             "name": "20-clct-etcd-member.conf",
-            "contents": "[Unit]\nRequires=coreos-metadata.service\nAfter=coreos-metadata.service\n\n[Service]\nEnvironmentFile=/run/metadata/coreos\nExecStart=\nExecStart=/usr/lib/coreos/etcd-wrapper $ETCD_OPTS \\\n  --name=\"${COREOS_VAGRANT_VIRTUALBOX_HOSTNAME}\" \\\n  --listen-peer-urls=\"http://${COREOS_VAGRANT_VIRTUALBOX_PRIVATE_IPV4}:2380\" \\\n  --listen-client-urls=\"http://0.0.0.0:2379\" \\\n  --initial-advertise-peer-urls=\"http://${COREOS_VAGRANT_VIRTUALBOX_PRIVATE_IPV4}:2380\" \\\n  --advertise-client-urls=\"http://${COREOS_VAGRANT_VIRTUALBOX_PRIVATE_IPV4}:2379\" \\\n  --discovery=\"<DISCOVERY_URL>\""
+            "contents": "[Unit]\nRequires=coreos-metadata.service\nAfter=coreos-metadata.service\n\n[Service]\nEnvironmentFile=/run/metadata/coreos\nExecStart=\nExecStart=/usr/lib/coreos/etcd-wrapper $ETCD_OPTS \\\n  --name=\"${COREOS_VAGRANT_VIRTUALBOX_HOSTNAME}\" \\\n  --listen-peer-urls=\"http://${COREOS_VAGRANT_VIRTUALBOX_PRIVATE_IPV4}:2380\" \\\n  --listen-client-urls=\"http://0.0.0.0:2379\" \\\n  --initial-advertise-peer-urls=\"http://${COREOS_VAGRANT_VIRTUALBOX_PRIVATE_IPV4}:2380\" \\\n  --advertise-client-urls=\"http://${COREOS_VAGRANT_VIRTUALBOX_PRIVATE_IPV4}:2379\" \\\n  --discovery=\"https://discovery.etcd.io/<DISCOVERY_TOKEN>\""
           }
         ]
       },

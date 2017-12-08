@@ -1,36 +1,100 @@
-version: "3.2"
+version: "3.3"
 
 services:
-  
+
   watchtower:
     image: centurylink/watchtower
     command: --cleanup
     volumes:
       - type: bind
-        source: /run/docker.sock
+        source: /var/run/docker.sock
         target: /var/run/docker.sock
     deploy:
       mode: global
+      placement:
+        constraints:
+          - node.role == manager
       restart_policy:
         condition: on-failure
         delay: 30s
-        max_attempts: 5
+        max_attempts: 3
+        window: 120s
+
+  portainer:
+    image: portainer/portainer
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+      - type: volume
+        source: portainer
+        target: /data
+    networks:
+      - proxy
+    deploy:
+      mode: replicated
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.docker.network=proxy
+        - traefik.frontend.rule=Host:portainer.tortuga.lan
+        - traefik.enable=true
+        - traefik.port=9000
+      restart_policy:
+        condition: on-failure
+        delay: 30s
+        max_attempts: 3
         window: 120s
   
-  exhibitor:
-    image: pixelmilk/exhibitor:1.6.0-3.4.10
-    environment:
-      - LOCAL_IPV4=true
-    user: root
+  docker-proxy:
+    image: rancher/socat-docker
     networks:
-      - mesos
+      - proxy
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+  traefik:
+    image: traefik
+    depends_on:
+      - docker_proxy
     ports:
-      - target: 8181
-        published: 8181
+      - target: 8080
+        published: 8080
         protocol: tcp
         mode: host
-    labels:
-      com.mesos: "exhibitor"
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    command: 
+      - --loglevel=debug
+      - --docker
+      - --docker.swarmmode
+      - --docker.domain=tortuga.lan
+      - --docker.endpoint=tcp://docker-proxy:2375
+      - --marathon
+      - --marathon.endpoint=http://marathon:8080
+      - --marathon.domain=tortuga.lan
+      - --web
+      - --web.address=:8080
+      - --defaultentrypoints=http
+      - --entrypoints=Name:http Address::80
+    networks:
+      - proxy
+      - mesos
     deploy:
       mode: global
       placement:
@@ -39,24 +103,40 @@ services:
       restart_policy:
         condition: any
         delay: 5s
-        max_attempts: 5
+        window: 120s
+
+  zetcd:
+    image: quay.io/coreos/zetcd
+    command: ["--endpoints", "172.17.8.2:2379"]
+    networks:
+      - mesos
+    deploy:
+      mode: global
+      endpoint_mode: dnsrr
+      update_config:
+        parallelism: 1
+        delay: 30s
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 5s
         window: 120s
 
   master:
-    image: pixelmilk/mesos-master:1.3.1
+    image: axelspringer/mesos-master:1.4.1
+    depends_on:
+      - zetcd
     networks:
       - mesos
-    ports:
-      - target: 5050
-        published: 5050
-        protocol: tcp
-        mode: host
     environment:
+      - MESOS_CLUSTER=kombinat
       - MESOS_PORT=5050
-      - MESOS_ZK=zk://exhibitor:2181/mesos
+      - MESOS_ZK=zk://zetcd:2181/mesos
 #     - MESOS_ADVERTISE_IP=MASTER_IP
-      - MESOS_QUORUM=1
-      - MESOS_REGISTRY=in_memory
+      - MESOS_QUORUM=3
+      - MESOS_REGISTRY=replicated_log
     labels:
       com.mesos: "master"
     deploy:
@@ -64,99 +144,119 @@ services:
       placement:
         constraints:
           - node.role == manager
+      update_config:
+        parallelism: 1
+        delay: 30s
       restart_policy:
         condition: any
         delay: 5s
-        max_attempts: 5
         window: 120s
 
   agent:
-    image: pixelmilk/mesos-agent:1.3.1
+    image: axelspringer/mesos-agent:1.4.1
     user: root
     networks:
       - mesos
     depends_on:
-      - exhibitor
+      - zetcd
       - master
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
-      - /run/docker.sock:/var/run/docker.sock:rw
-    tmpfs:
-      - /run:rw,exec,nosuid,size=2097152k
-      - /tmp:rw,exec,nosuid,size=2097152k
+      - /var/run/docker.sock:/var/run/docker.sock:rw
     environment:
       - MESOS_PORT=5051
-      - MESOS_MASTER=zk://exhibitor:2181/mesos
+      - MESOS_MASTER=zk://zetcd:2181/mesos
       - MESOS_SWITCH_USER=0
       - MESOS_CONTAINERIZERS=docker,mesos
       - MESOS_WORK_DIR=/var/lib/mesos/agent
       - MESOS_SYSTEMD_ENABLE_SUPPORT=false
     deploy:
       mode: global
+      update_config:
+        parallelism: 1
+        delay: 30s
       placement:
         constraints:
           - node.role == worker
       restart_policy:
         condition: any
         delay: 5s
-        max_attempts: 5
         window: 120s
-  
-  # dns:
-  #   image: mesosphere/mesos-dns:0.5.2
 
   marathon:
-    image: pixelmilk/marathon:1.4.7
-    command: --master zk://exhibitor:2181/mesos --zk zk://exhibitor:2181/marathon
+    image: axelspringer/marathon:1.5.2
+    command:
+      - --master=zk://zetcd:2181/mesos
+      - --zk=zk://zetcd:2181/marathon
+      - --webui_url=https://marathon.tortuga.lan
+      - --default_network_name=mesos
+      - --enable_features=vips,task_killing
     depends_on:
+      - zetcd
+      - master
       - agent
     networks:
       - mesos
-      - proxy
-    ports:
-      - 8080:8080
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      restart_policy:
-        condition: any
-        delay: 5s
-        max_attempts: 5
-        window: 120s
-
-  traefik:
-    image: traefik
-    command: --marathon --marathon.endpoint="http://marathon:8080" --web.address=":8383"
-    networks:
-      - mesos
-      - proxy
-    ports:
-      - 80:80
-      - 443:443
-      - 8383:8383
-      - 8484:8484
     deploy:
       mode: global
+      update_config:
+        parallelism: 1
+        delay: 30s
+      labels:
+        - traefik.docker.network=mesos
+        - traefik.frontend.rule=Host:marathon.tortuga.services
+        - traefik.enable=true
+        - traefik.port=8080
       placement:
         constraints:
           - node.role == manager
       restart_policy:
         condition: any
         delay: 5s
-        max_attempts: 5
+        window: 120s
+  
+  chronos:
+    image: axelspringer/chronos:3.0.2
+    command:
+      - --master=zk://zetcd:2181/mesos
+      - --zk_hosts=zetcd:2181
+      - --zk_path=/chronos
+      - --webui_url=https://chronos.tortuga.lan
+      - --http_compression
+      - --http_port=8080
+    depends_on:
+      - zetcd
+      - master
+      - agent
+    networks:
+      - mesos
+    deploy:
+      mode: global
+      update_config:
+        parallelism: 1
+        delay: 30s
+      labels:
+        - traefik.docker.network=mesos
+        - traefik.frontend.rule=Host:chronos.tortuga.lan
+        - traefik.enable=true
+        - traefik.port=8080
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: any
+        delay: 5s
         window: 120s
 
+volumes:
+  portainer:
+
 networks:
-  mesos:
-    driver: overlay
-    driver_opts:
-      encrypted: ""
-  
   proxy:
-    driver: overlay
-    attachable: true
-    driver_opts:
-      encrypted: ""
+    external: true
+
+  mesos:
+    external: true
+
+  registry:
+    external: true

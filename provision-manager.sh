@@ -23,6 +23,9 @@ docker swarm init --listen-addr ${MANAGER_IP}:2377 --advertise-addr ${MANAGER_IP
 # save tokens
 docker swarm join-token -q worker > ${SHARED_FOLDER}/worker_token
 docker swarm join-token -q manager > ${SHARED_FOLDER}/manager_token
+# create networks
+docker network create --driver overlay --attachable mesos
+docker network create --driver overlay --attachable proxy
 # use stack to create infrastructure
 docker stack deploy -c ${SHARED_FOLDER}/stack.yml mesos
 
