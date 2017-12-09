@@ -1,4 +1,4 @@
-# coreos-kombinat
+# vagrant-kombinat
 
 What we provide here, is Kombinat (our flavor of Mesos) in a box. We use [CoreOS](https://coreos.com/) and [Docker Swarm](https://docs.docker.com/engine/swarm/) to run [Apache Mesos](http://mesos.apache.org/) with some additions on top. 
 
