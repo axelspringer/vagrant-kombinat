@@ -1,12 +1,12 @@
-# coreos-mesos-vagrant
+# coreos-kombinat
 
-What we test here, is somewhat ambiguous. We use [CoreOS](https://coreos.com/) and [Docker Swarm](https://docs.docker.com/engine/swarm/) to run [Apache Mesos](http://mesos.apache.org/) on top. 
+What we provide here, is Kombinat (our flavor of Mesos) in a box. We use [CoreOS](https://coreos.com/) and [Docker Swarm](https://docs.docker.com/engine/swarm/) to run [Apache Mesos](http://mesos.apache.org/) with some additions on top. 
 
 :smirk: Sounds crazy? Because, that it is. Though, [Docker Swarm](https://docs.docker.com/engine/swarm/) provides us with many of the needed underlying technologies to use [Apache Mesos](http://mesos.apache.org/). E.g. overlay networking, service orchestration and declarative infrastructure.
 
 > Provisioning may take a while, because the images are pulled in the background
 
-We use the `stack.yml` to provision the Swarm with a Mesos stack.
+We use the `kombinat.yml` to provision the Swarm with our Mesos stack.
 
 ## Setup
 
@@ -14,13 +14,20 @@ We use the `stack.yml` to provision the Swarm with a Mesos stack.
 
 > Please, change the `DISCOVERY_URL` in `config.ign` to a working token for `etcd`, by executing `curl -w "\n" 'https://discovery.etcd.io/new?size=3'`
 
-``` 
-vagrant up manager --provider virtualbox
+```bash
+vagrant up
+```
+
+```bash
+sudo echo "172.17.8.2   portainer.kombinat.lan" >> /etc/hosts
+sudo echo "172.17.8.2   master.kombinat.lan" >> /etc/hosts
+sudo echo "172.17.8.2   marathon.kombinat.lan" >> /etc/hosts
+sudo echo "172.17.8.2   chronos.kombinat.lan" >> /etc/hosts
 ```
 
 ## Play with it
 
-> Exhibitor [http://172.17.8.2:8181](http://172.17.8.2:8181), Marathon [http://172.17.8.2:8080](http://172.17.8.2:8080), Mesos [http://172.17.8.2:5050](http://172.17.8.2:8181)
+> Marathon [http://marathon.kombinat.lan](http://marathon.kombinat.lan), Portainer [http://portainer.kombinat.lan](http://portainer.kombinat.lan), Master [http://master.kombinat.lan](http://master.kombinat.lan)
 
 Run the Swarm manager 
 

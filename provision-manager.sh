@@ -27,5 +27,7 @@ docker swarm join-token -q manager > ${SHARED_FOLDER}/manager_token
 docker network create --driver overlay --attachable mesos
 docker network create --driver overlay --attachable proxy
 # use stack to create infrastructure
-docker stack deploy -c ${SHARED_FOLDER}/stack.yml mesos
+docker stack deploy -c ${SHARED_FOLDER}/kombinat.yml kombinat
+# this is a hack
+bash -c 'sleep 5m; docker service update --force kombinat_traefik' &
 

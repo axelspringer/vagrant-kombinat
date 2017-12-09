@@ -2,24 +2,6 @@ version: "3.3"
 
 services:
 
-  watchtower:
-    image: centurylink/watchtower
-    command: --cleanup
-    volumes:
-      - type: bind
-        source: /var/run/docker.sock
-        target: /var/run/docker.sock
-    deploy:
-      mode: global
-      placement:
-        constraints:
-          - node.role == manager
-      restart_policy:
-        condition: on-failure
-        delay: 30s
-        max_attempts: 3
-        window: 120s
-
   portainer:
     image: portainer/portainer
     volumes:
@@ -38,7 +20,7 @@ services:
           - node.role == manager
       labels:
         - traefik.docker.network=proxy
-        - traefik.frontend.rule=Host:portainer.tortuga.lan
+        - traefik.frontend.rule=Host:portainer.kombinat.lan
         - traefik.enable=true
         - traefik.port=9000
       restart_policy:
@@ -53,7 +35,7 @@ services:
       - proxy
     volumes:
       - type: bind
-        source: /var/run/docker.sock
+        source: /run/docker.sock
         target: /var/run/docker.sock
     deploy:
       mode: replicated
@@ -63,9 +45,12 @@ services:
           - node.role == manager
 
   traefik:
-    image: traefik
+    image: traefik:1.5
     depends_on:
-      - docker_proxy
+      - docker-proxy
+      - marathon
+      - zetcd
+      - chronos
     ports:
       - target: 8080
         published: 8080
@@ -83,11 +68,11 @@ services:
       - --loglevel=debug
       - --docker
       - --docker.swarmmode
-      - --docker.domain=tortuga.lan
+      - --docker.domain=kombinat.lan
       - --docker.endpoint=tcp://docker-proxy:2375
       - --marathon
       - --marathon.endpoint=http://marathon:8080
-      - --marathon.domain=tortuga.lan
+      - --marathon.domain=kombinat.lan
       - --web
       - --web.address=:8080
       - --defaultentrypoints=http
@@ -102,12 +87,12 @@ services:
           - node.role == manager
       restart_policy:
         condition: any
-        delay: 5s
+        delay: 30s
         window: 120s
 
   zetcd:
     image: quay.io/coreos/zetcd
-    command: ["--endpoints", "172.17.8.2:2379"]
+    command: ["--endpoints", "172.17.8.2:2379", "--logtostderr", "-v", "9"]
     networks:
       - mesos
     deploy:
@@ -135,12 +120,17 @@ services:
       - MESOS_PORT=5050
       - MESOS_ZK=zk://zetcd:2181/mesos
 #     - MESOS_ADVERTISE_IP=MASTER_IP
-      - MESOS_QUORUM=3
+      - MESOS_QUORUM=1
       - MESOS_REGISTRY=replicated_log
     labels:
       com.mesos: "master"
     deploy:
       mode: global
+      labels:
+        - traefik.docker.network=mesos
+        - traefik.frontend.rule=Host:master.kombinat.lan
+        - traefik.enable=true
+        - traefik.port=5050
       placement:
         constraints:
           - node.role == manager
@@ -188,7 +178,7 @@ services:
     command:
       - --master=zk://zetcd:2181/mesos
       - --zk=zk://zetcd:2181/marathon
-      - --webui_url=https://marathon.tortuga.lan
+      - --webui_url=http://marathon.kombinat.lan
       - --default_network_name=mesos
       - --enable_features=vips,task_killing
     depends_on:
@@ -204,7 +194,7 @@ services:
         delay: 30s
       labels:
         - traefik.docker.network=mesos
-        - traefik.frontend.rule=Host:marathon.tortuga.services
+        - traefik.frontend.rule=Host:marathon.kombinat.lan
         - traefik.enable=true
         - traefik.port=8080
       placement:
@@ -221,7 +211,7 @@ services:
       - --master=zk://zetcd:2181/mesos
       - --zk_hosts=zetcd:2181
       - --zk_path=/chronos
-      - --webui_url=https://chronos.tortuga.lan
+      - --webui_url=https://chronos.kombinat.lan
       - --http_compression
       - --http_port=8080
     depends_on:
@@ -237,7 +227,7 @@ services:
         delay: 30s
       labels:
         - traefik.docker.network=mesos
-        - traefik.frontend.rule=Host:chronos.tortuga.lan
+        - traefik.frontend.rule=Host:chronos.kombinat.lan
         - traefik.enable=true
         - traefik.port=8080
       placement:
@@ -256,7 +246,4 @@ networks:
     external: true
 
   mesos:
-    external: true
-
-  registry:
     external: true
